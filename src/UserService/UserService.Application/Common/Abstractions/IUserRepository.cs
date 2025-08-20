@@ -1,6 +1,6 @@
 ﻿using UserService.Domain.Entities;
 
-namespace UserService.Application.Abstractions
+namespace UserService.Application.Common.Abstractions
 {
     public interface IUserRepository
     {

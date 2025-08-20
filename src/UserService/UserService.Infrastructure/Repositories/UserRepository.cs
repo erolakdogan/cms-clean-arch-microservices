@@ -1,6 +1,6 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
-using UserService.Application.Abstractions;
+using UserService.Application.Common.Abstractions;
 using UserService.Domain.Entities;
 using UserService.Infrastructure.Persistence;
 

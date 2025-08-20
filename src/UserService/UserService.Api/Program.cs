@@ -1,11 +1,17 @@
 ﻿using Asp.Versioning;
+using FluentValidation;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using UserService.Application.Abstractions;
+using System.Reflection;
+using UserService.Application.Common.Abstractions;
+using UserService.Application.Common.Behaviors;
+using UserService.Application.Users;
 using UserService.Infrastructure.Persistence;
 using UserService.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
+var appAssembly = typeof(UsersMapper).Assembly;
 
 // Serilog (console)
 builder.Host.UseSerilog((ctx, lc) =>
@@ -18,7 +24,17 @@ builder.Host.UseSerilog((ctx, lc) =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-// Controllers + JSON seçenekleri
+// MediatR
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
+    Assembly.Load("UserService.Application")));
+// FluentValidation
+builder.Services.AddValidatorsFromAssembly(Assembly.Load("UserService.Application"));
+// Pipeline behaviors
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+// UsersMapper
+builder.Services.AddScoped<UsersMapper>();
+
+
 builder.Services.AddControllers()
     .AddJsonOptions(o => { /* future: json options */ });
 
@@ -87,3 +103,8 @@ app.MapGet("/ready", () => Results.Ok(new { status = "ready" }));
 // Basit ping 
 app.MapGet("/ping", () => Results.Ok("pong"));
 app.Run();
+
+static Assembly GetAppAssembly(Assembly appAssembly)
+{
+    return appAssembly;
+}

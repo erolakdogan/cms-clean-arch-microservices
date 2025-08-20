@@ -1,4 +1,4 @@
-﻿using UserService.Application.Abstractions;
+﻿using UserService.Application.Common.Abstractions;
 using UserService.Infrastructure.Persistence;
 
 namespace UserService.Infrastructure.Repositories
