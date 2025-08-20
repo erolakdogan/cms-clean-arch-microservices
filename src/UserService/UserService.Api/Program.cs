@@ -1,5 +1,9 @@
 ﻿using Asp.Versioning;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
+using UserService.Application.Abstractions;
+using UserService.Infrastructure.Persistence;
+using UserService.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +14,9 @@ builder.Host.UseSerilog((ctx, lc) =>
       .Enrich.FromLogContext()
       .WriteTo.Console();
 });
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Controllers + JSON seçenekleri
 builder.Services.AddControllers()
@@ -44,7 +51,20 @@ builder.Services.AddProblemDetails(opt =>
     // İleride detaylandırırız; env'e göre davranış
 });
 
+
+builder.Services.AddDbContext<UserDbContext>(opt =>
+{
+    var cs = builder.Configuration.GetConnectionString("Db");
+    opt.UseNpgsql(cs).UseSnakeCaseNamingConvention();
+    opt.EnableSensitiveDataLogging();
+});
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 // Exception handling + ProblemDetails
 if (!app.Environment.IsDevelopment())
