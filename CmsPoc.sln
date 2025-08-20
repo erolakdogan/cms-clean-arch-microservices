@@ -37,6 +37,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content-service", "content-
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "user-service", "user-service", "{FB25F833-EB21-496B-AEC6-FA18A20A7B77}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "building-blocks", "building-blocks", "{BD452D29-85AF-473C-8ACA-AD3558773BE5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Web", "src\BuildingBlocks\Shared.Web\Shared.Web.csproj", "{E4EA5925-25DB-437B-95EB-621B751E4F79}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +79,10 @@ Global
 		{B7D3EC4A-20FE-4E19-BC68-DE94B94C97A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B7D3EC4A-20FE-4E19-BC68-DE94B94C97A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B7D3EC4A-20FE-4E19-BC68-DE94B94C97A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4EA5925-25DB-437B-95EB-621B751E4F79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4EA5925-25DB-437B-95EB-621B751E4F79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4EA5925-25DB-437B-95EB-621B751E4F79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4EA5925-25DB-437B-95EB-621B751E4F79}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -90,6 +98,8 @@ Global
 		{B7D3EC4A-20FE-4E19-BC68-DE94B94C97A6} = {132FE196-AF30-4839-94BF-9E9E2B31FEB3}
 		{132FE196-AF30-4839-94BF-9E9E2B31FEB3} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{FB25F833-EB21-496B-AEC6-FA18A20A7B77} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{BD452D29-85AF-473C-8ACA-AD3558773BE5} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{E4EA5925-25DB-437B-95EB-621B751E4F79} = {BD452D29-85AF-473C-8ACA-AD3558773BE5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {74616B61-1F72-4E45-8201-B101DD72E9BE}

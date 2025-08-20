@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\Shared.Web\Shared.Web.csproj" />
     <ProjectReference Include="..\ContentService.Application\ContentService.Application.csproj" />
     <ProjectReference Include="..\ContentService.Infrastructure\ContentService.Infrastructure.csproj" />
   </ItemGroup>

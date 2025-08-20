@@ -9,25 +9,11 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Shared.Web.Middleware;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
-// Application assembly'ini strongly-typed al
-var appAssembly = typeof(CreateContentCommand).Assembly;
 
-// MediatR
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(appAssembly));
-
-// FluentValidation
-builder.Services.AddValidatorsFromAssembly(appAssembly);
-
-// Pipeline behaviors
-builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-
-// Mapperly mapper'ı DI
-builder.Services.AddScoped<ContentMapper>();
-
-// Serilog (console)
 builder.Host.UseSerilog((ctx, lc) =>
 {
     lc.ReadFrom.Configuration(ctx.Configuration)
@@ -35,11 +21,9 @@ builder.Host.UseSerilog((ctx, lc) =>
       .WriteTo.Console();
 });
 
-// Controllers + JSON seçenekleri
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-// API Versioning (v1 default)
 builder.Services
     .AddApiVersioning(opt =>
     {
@@ -57,6 +41,9 @@ builder.Services
         opt.SubstituteApiVersionInUrl = true;
     });
 
+builder.Services.AddScoped<IContentRepository, ContentRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ContentMapper>();
 builder.Services.AddDbContext<ContentDbContext>(opt =>
 {
     var cs = builder.Configuration.GetConnectionString("Db");
@@ -66,47 +53,55 @@ builder.Services.AddDbContext<ContentDbContext>(opt =>
 #endif
 });
 
-builder.Services.AddScoped<IContentRepository, ContentRepository>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+var appAssembly = typeof(CreateContentCommand).Assembly;
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(appAssembly));
+builder.Services.AddValidatorsFromAssembly(appAssembly);
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-// Swagger
+builder.Services.AddHealthChecks();
+builder.Services.AddProblemDetails();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "ContentService", Version = "v1" }); 
 });
-builder.Services.AddHealthChecks();
-
-// ProblemDetails (yerleşik)
-builder.Services.AddProblemDetails(opt =>
-{
-    // İleride detaylandırırız; env'e göre davranış
-});
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+if (app.Environment.IsDevelopment())
 {
+    await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<ContentDbContext>();
     await db.Database.MigrateAsync();
-    await Seed.EnsureAsync(db);
 }
-
-// Exception handling + ProblemDetails
-if (!app.Environment.IsDevelopment())
+else
 {
-    app.UseExceptionHandler(); // otomatik ProblemDetails üretir
+    app.UseExceptionHandler();
 }
 
 app.UseHttpsRedirection();
-app.UseSwagger();
-app.UseSwaggerUI(opt => {});
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseSerilogRequestLogging(opts =>
+{
+    opts.EnrichDiagnosticContext = (diag, http) =>
+    {
+        if (http.Response.Headers.TryGetValue(CorrelationIdMiddleware.HeaderName, out var cid))
+            diag.Set("CorrelationId", cid.ToString());
+        diag.Set("UserId", http.User?.FindFirst("sub")?.Value);
+        diag.Set("Path", http.Request.Path);
+    };
+});
 
-// Routing + auth middlewares (ileride eklenecek)
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseSwagger();
+app.UseSwaggerUI();
+
 app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapGet("/ready", () => Results.Ok(new { status = "ready" }));
-
-// Basit ping 
 app.MapGet("/ping", () => Results.Ok("pong"));
 app.Run();

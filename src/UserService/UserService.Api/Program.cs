@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Shared.Web.Middleware;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -176,17 +177,29 @@ if (app.Environment.IsDevelopment())
         await uow.SaveChangesAsync();
     }
 }
-
-// Error handling
-if (!app.Environment.IsDevelopment())
+else
 {
     app.UseExceptionHandler();
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseSerilogRequestLogging(opts =>
+{
+    opts.EnrichDiagnosticContext = (diag, http) =>
+    {
+        if (http.Response.Headers.TryGetValue(CorrelationIdMiddleware.HeaderName, out var cid))
+            diag.Set("CorrelationId", cid.ToString());
+        diag.Set("UserId", http.User?.FindFirst("sub")?.Value);
+        diag.Set("Path", http.Request.Path);
+    };
+});
+
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
