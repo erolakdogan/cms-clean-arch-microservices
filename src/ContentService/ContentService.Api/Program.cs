@@ -71,7 +71,10 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "ContentService", Version = "v1" }); 
+});
 builder.Services.AddHealthChecks();
 
 // ProblemDetails (yerleşik)
@@ -97,10 +100,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseSwagger();
-app.UseSwaggerUI(opt =>
-{
-    // Çoklu versiyon senaryosunda explorer'dan gruplar eklenir
-});
+app.UseSwaggerUI(opt => {});
 
 // Routing + auth middlewares (ileride eklenecek)
 app.MapControllers();

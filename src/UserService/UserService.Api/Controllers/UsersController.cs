@@ -1,11 +1,12 @@
 ﻿using Asp.Versioning;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Api.Contracts.Users;
 using UserService.Application.Users;
 using UserService.Application.Users.Command.Create;
-using UserService.Application.Users.Command.Update;
 using UserService.Application.Users.Command.Delete;
+using UserService.Application.Users.Command.Update;
 using UserService.Application.Users.Query.GetById;
 using UserService.Application.Users.Query.List;
 
@@ -18,7 +19,7 @@ namespace UserService.Api.Controllers
     {
         private static UserResponse ToResponse(UserDto d)
             => new(d.Id, d.Email, d.DisplayName, d.Roles, d.CreatedAt);
-
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost]
         public async Task<ActionResult<UserResponse>> Create([FromBody] UserCreateRequest req, CancellationToken ct)
         {
@@ -41,6 +42,7 @@ namespace UserService.Api.Controllers
             return Ok(list.Select(ToResponse).ToList());
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpPut("{id:guid}")]
         public async Task<ActionResult<UserResponse>> Update(Guid id, [FromBody] UserUpdateRequest req, CancellationToken ct)
         {
@@ -48,6 +50,7 @@ namespace UserService.Api.Controllers
             return Ok(ToResponse(dto));
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {

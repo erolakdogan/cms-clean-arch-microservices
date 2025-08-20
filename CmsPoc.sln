@@ -33,9 +33,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution Items", "solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content service", "content service", "{132FE196-AF30-4839-94BF-9E9E2B31FEB3}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content-service", "content-service", "{132FE196-AF30-4839-94BF-9E9E2B31FEB3}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "user service", "user service", "{FB25F833-EB21-496B-AEC6-FA18A20A7B77}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "user-service", "user-service", "{FB25F833-EB21-496B-AEC6-FA18A20A7B77}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
