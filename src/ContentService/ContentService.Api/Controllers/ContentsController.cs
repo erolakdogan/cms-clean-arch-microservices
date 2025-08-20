@@ -4,7 +4,6 @@ using ContentService.Application.Contents;
 using ContentService.Application.Contents.Commands;
 using ContentService.Application.Contents.Queries;
 using ContentService.Application.Contents.Query.GetById;
-using ContentService.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -45,7 +44,7 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
 
     /// <summary>Create a content</summary>
     [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateContentCommand cmd, CancellationToken ct)
@@ -58,7 +57,7 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
 
     /// <summary>Update a content</summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateContentCommand body, CancellationToken ct)
@@ -70,7 +69,7 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
 
     /// <summary>Delete a content</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)

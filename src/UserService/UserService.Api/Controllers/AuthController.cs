@@ -1,47 +1,66 @@
 ﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Web.Security;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using UserService.Api.Contracts.Auth;
 using UserService.Application.Common.Abstractions;
 
 namespace UserService.Api.Controllers
 {
     [ApiController]
-    [ApiVersion("1.0")]
+    [ApiVersion(1.0)]
     [Route("api/v{version:apiVersion}/auth")]
     public sealed class AuthController(
-     IConfiguration cfg,
-     IUserRepository users,
+     IOptions<JwtOptions> jwtOpt,
+     IUserRepository repo,
      IPasswordHasherService hasher) : ControllerBase
     {
-        [HttpPost("login")]
-        public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest req, CancellationToken ct)
-        {
-            var u = await users.GetByEmailAsync(req.Email, ct);
-            if (u is null || !hasher.Verify(u.PasswordHash, req.Password))
-                return Problem(title: "Invalid credentials", statusCode: 401);
+        public sealed record LoginRequest(string Email, string Password);
 
-            var issuer = cfg["Jwt:Issuer"] ?? "cmspoc";
-            var audience = cfg["Jwt:Audience"] ?? "cmspoc.clients";
-            var minutes = int.TryParse(cfg["Jwt:AccessTokenMinutes"], out var m) ? m : 30;
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(cfg["Jwt:Key"] ?? "dev-key-change-me"));
+        [HttpPost("login")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Login([FromBody] LoginRequest req, CancellationToken ct)
+        {
+            var user = await repo.Query().FirstOrDefaultAsync(u => u.Email == req.Email, ct);
+            if (user is null || !hasher.Verify(user.PasswordHash, req.Password))
+                return Unauthorized();
+
+            var jwt = jwtOpt.Value;
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>
         {
-            new("sub", u.Id.ToString("N")),
-            new(ClaimTypes.Name, u.DisplayName),
-            new(ClaimTypes.Email, u.Email),
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(ClaimTypes.Name, user.DisplayName)
         };
-            foreach (var r in u.Roles) claims.Add(new(ClaimTypes.Role, r));
+            foreach (var r in user.Roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, r)); // policy için
+                claims.Add(new Claim("role", r));          // uyumluluk için
+            }
 
-            var token = new JwtSecurityToken(issuer, audience, claims,
-                expires: DateTime.UtcNow.AddMinutes(minutes), signingCredentials: creds);
+            var token = new JwtSecurityToken(
+                issuer: jwt.Issuer,
+                audience: jwt.Audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(jwt.AccessTokenMinutes),
+                signingCredentials: creds);
 
-            return Ok(new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), token.ValidTo));
+            var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return Ok(new
+            {
+                accessToken,
+                tokenType = "Bearer",
+                expiresIn = (int)TimeSpan.FromMinutes(jwt.AccessTokenMinutes).TotalSeconds
+            });
         }
     }
 }

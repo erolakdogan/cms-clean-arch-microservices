@@ -1,16 +1,15 @@
 ﻿using Asp.Versioning;
 using FluentValidation;
 using MediatR;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Shared.Web.Caching;
 using Shared.Web.Middleware;
+using Shared.Web.Security;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.RateLimiting;
+using System.Text.Json.Serialization;
 using UserService.Application.Common.Abstractions;
 using UserService.Application.Common.Behaviors;
 using UserService.Application.Users;
@@ -18,18 +17,19 @@ using UserService.Domain.Entities;
 using UserService.Infrastructure.Persistence;
 using UserService.Infrastructure.Repositories;
 using UserService.Infrastructure.Security;
-using Shared.Web.Caching;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Serilog
 builder.Host.UseSerilog((ctx, lc) =>
+{
     lc.ReadFrom.Configuration(ctx.Configuration)
       .Enrich.FromLogContext()
-      .WriteTo.Console());
+      .WriteTo.Console();
+});
 
-// Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // API Versioning
 builder.Services
@@ -49,7 +49,7 @@ builder.Services
         opt.SubstituteApiVersionInUrl = true;
     });
 
-// DI: repositories & services
+// DI
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
@@ -61,100 +61,59 @@ builder.Services.AddDbContext<UserDbContext>(opt =>
 {
     var cs = builder.Configuration.GetConnectionString("Db");
     opt.UseNpgsql(cs).UseSnakeCaseNamingConvention();
-
-    if (builder.Environment.IsDevelopment())
-        opt.EnableSensitiveDataLogging();
+#if DEBUG
+    opt.EnableSensitiveDataLogging();
+#endif
 });
 
-// MediatR / Validators / Behaviors
+// MediatR + Validation + Pipelines
 var appAssembly = typeof(UsersMapper).Assembly;
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(appAssembly));
 builder.Services.AddValidatorsFromAssembly(appAssembly);
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-// Health + ProblemDetails
-builder.Services.AddHealthChecks();
+// Redis cache + behaviors
+builder.Services.AddRedisCache(builder.Configuration);
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CacheInvalidationBehavior<,>));
+
+// ProblemDetails, Health, Swagger
 builder.Services.AddProblemDetails();
-
-// JWT
-var jwt = builder.Configuration.GetSection("Jwt");
-var keyString = jwt["Key"] ?? throw new InvalidOperationException("Jwt:Key not configured");
-if (Encoding.UTF8.GetByteCount(keyString) < 32)
-    throw new InvalidOperationException("Jwt:Key must be at least 32 bytes (HS256).");
-var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
+builder.Services.AddHealthChecks();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "UserService", Version = "v1" });
+    var securityScheme = new OpenApiSecurityScheme
     {
-        o.TokenValidationParameters = new()
-        {
-            ValidIssuer = jwt["Issuer"] ?? "cmspoc",
-            ValidAudience = jwt["Audience"] ?? "cmspoc.clients",
-            IssuerSigningKey = signingKey,
-            ClockSkew = TimeSpan.FromSeconds(30),
-            RoleClaimType = ClaimTypes.Role,
-            NameClaimType = ClaimTypes.Name
-        };
-    });
+        Name = "Authorization",
+        Description = "JWT Bearer — sadece token'ı gir (\"Bearer\" yazma).",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+    };
+    c.AddSecurityDefinition("Bearer", securityScheme);
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement { { securityScheme, Array.Empty<string>() } });
+});
 
-// Authorization
+var jwtSection = builder.Configuration.GetSection("Jwt");
+Serilog.Log.Information("JWT cfg present:{Present} issuer:{Issuer} audience:{Audience} keyLen:{Len}",
+    jwtSection.Exists(),
+    jwtSection["Issuer"],
+    jwtSection["Audience"],
+    System.Text.Encoding.UTF8.GetByteCount(jwtSection["Key"] ?? ""));
+
+builder.Services.AddJwtAuth(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddAuthorization(opt =>
 {
     opt.AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
 });
 
-// Rate Limiting (kullanıcı/IP bazlı)
-builder.Services.AddRateLimiter(opts =>
-{
-    opts.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
-    {
-        var id = ctx.User?.Identity?.IsAuthenticated == true
-            ? $"u:{ctx.User.FindFirst("sub")?.Value ?? "anon"}"
-            : $"ip:{ctx.Connection.RemoteIpAddress}";
-        return RateLimitPartition.GetFixedWindowLimiter(id, _ => new FixedWindowRateLimiterOptions
-        {
-            Window = TimeSpan.FromSeconds(10),
-            PermitLimit = 60,
-            QueueLimit = 0
-        });
-    });
-});
-
-// Swagger + Bearer
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "UserService", Version = "v1" });
-
-    var securityScheme = new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Description = "JWT Bearer: token gir.",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT"
-    };
-    c.AddSecurityDefinition("Bearer", securityScheme);
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-
-builder.Services.AddRedisCache(builder.Configuration); // appsettings: "Redis"
-builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));
-builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CacheInvalidationBehavior<,>));
-
 var app = builder.Build();
 
-// DB migrate + development seed
+// Dev: migrate + seed admin
 if (app.Environment.IsDevelopment())
 {
     await using var scope = app.Services.CreateAsyncScope();
@@ -167,18 +126,16 @@ if (app.Environment.IsDevelopment())
     var uow = sp.GetRequiredService<IUnitOfWork>();
     var hasher = sp.GetRequiredService<IPasswordHasherService>();
 
-    const string email = "admin@cms.local";
-    var exists = await repo.Query().AnyAsync(u => u.Email == email);
-    if (!exists)
+    var email = "admin@cms.local";
+    if (!await repo.Query().AnyAsync(u => u.Email == email))
     {
-        var admin = new User
+        await repo.AddAsync(new User
         {
             Email = email,
             PasswordHash = hasher.Hash("P@ssw0rd!"),
             DisplayName = "Administrator",
             Roles = new[] { "Admin" }
-        };
-        await repo.AddAsync(admin);
+        });
         await uow.SaveChangesAsync();
     }
 }
@@ -198,10 +155,11 @@ app.UseSerilogRequestLogging(opts =>
             diag.Set("CorrelationId", cid.ToString());
         diag.Set("UserId", http.User?.FindFirst("sub")?.Value);
         diag.Set("Path", http.Request.Path);
+        var roles = string.Join(",", http.User?.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value) ?? []);
+        diag.Set("Roles", roles);
     };
 });
 
-app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
