@@ -1,4 +1,4 @@
-﻿using ContentService.Application.Abstractions;
+﻿using ContentService.Application.Common.Abstractions;
 using ContentService.Domain.Entities;
 using ContentService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

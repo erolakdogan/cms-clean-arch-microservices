@@ -1,4 +1,4 @@
-﻿using ContentService.Application.Abstractions;
+﻿using ContentService.Application.Common.Abstractions;
 using ContentService.Infrastructure.Persistence;
 
 

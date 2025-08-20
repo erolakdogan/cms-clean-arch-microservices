@@ -1,5 +1,4 @@
-﻿
-namespace ContentService.Application.Abstractions
+﻿namespace ContentService.Application.Common.Abstractions
 {
     public interface IUnitOfWork
     {

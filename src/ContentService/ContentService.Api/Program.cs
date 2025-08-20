@@ -1,11 +1,31 @@
 ﻿using Asp.Versioning;
-using ContentService.Application.Abstractions;
+using ContentService.Application.Common.Abstractions;
+using ContentService.Application.Common.Behaviors;
+using ContentService.Application.Contents;
+using ContentService.Application.Contents.Command.Create;
 using ContentService.Infrastructure.Persistence;
 using ContentService.Infrastructure.Repositories;
+using FluentValidation;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+// Application assembly'ini strongly-typed al
+var appAssembly = typeof(CreateContentCommand).Assembly;
+
+// MediatR
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(appAssembly));
+
+// FluentValidation
+builder.Services.AddValidatorsFromAssembly(appAssembly);
+
+// Pipeline behaviors
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+// Mapperly mapper'ı DI
+builder.Services.AddScoped<ContentMapper>();
 
 // Serilog (console)
 builder.Host.UseSerilog((ctx, lc) =>
@@ -17,7 +37,7 @@ builder.Host.UseSerilog((ctx, lc) =>
 
 // Controllers + JSON seçenekleri
 builder.Services.AddControllers()
-    .AddJsonOptions(o => { /* future: json options */ });
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // API Versioning (v1 default)
 builder.Services
