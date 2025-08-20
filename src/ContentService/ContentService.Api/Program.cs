@@ -1,4 +1,8 @@
 ﻿using Asp.Versioning;
+using ContentService.Application.Abstractions;
+using ContentService.Infrastructure.Persistence;
+using ContentService.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +37,18 @@ builder.Services
         opt.SubstituteApiVersionInUrl = true;
     });
 
+builder.Services.AddDbContext<ContentDbContext>(opt =>
+{
+    var cs = builder.Configuration.GetConnectionString("Db");
+    opt.UseNpgsql(cs).UseSnakeCaseNamingConvention();
+#if DEBUG
+    opt.EnableSensitiveDataLogging();
+#endif
+});
+
+builder.Services.AddScoped<IContentRepository, ContentRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -45,6 +61,13 @@ builder.Services.AddProblemDetails(opt =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ContentDbContext>();
+    await db.Database.MigrateAsync();
+    await Seed.EnsureAsync(db);
+}
 
 // Exception handling + ProblemDetails
 if (!app.Environment.IsDevelopment())
