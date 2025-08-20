@@ -1,30 +1,27 @@
 ﻿using MediatR;
-using Microsoft.EntityFrameworkCore;
 using UserService.Application.Common.Abstractions;
 using UserService.Domain.Entities;
 
-namespace UserService.Application.Users.Command.Create
+namespace UserService.Application.Users.Commands;
+
+public sealed class CreateUserHandler(
+    IUserRepository repo,
+    IUnitOfWork uow,
+    IPasswordHasherService hasher)
+    : IRequestHandler<CreateUserCommand, Guid>
 {
-    public sealed class CreateUserHandler(IUserRepository repo, IUnitOfWork uow, UsersMapper mapper)
-    : IRequestHandler<CreateUserCommand, UserDto>
+    public async Task<Guid> Handle(CreateUserCommand req, CancellationToken ct)
     {
-        public async Task<UserDto> Handle(CreateUserCommand req, CancellationToken ct)
+        var entity = new User
         {
-            var exists = await repo.Query().AnyAsync(u => u.Email == req.Email, ct);
-            if (exists) throw new InvalidOperationException("Email already exists.");
+            Email = req.Email.Trim(),
+            PasswordHash = hasher.Hash(req.Password),
+            DisplayName = req.DisplayName.Trim(),
+            Roles = req.Roles ?? Array.Empty<string>()
+        };
 
-            var createUserItem = new User
-            {
-                Email = req.Email,
-                PasswordHash = "PLACEHOLDER",
-                DisplayName = req.DisplayName,
-                Roles = req.Roles
-            };
-
-            await repo.AddAsync(createUserItem, ct);
-            await uow.SaveChangesAsync(ct);
-
-            return mapper.ToDto(createUserItem);
-        }
+        await repo.AddAsync(entity, ct);
+        await uow.SaveChangesAsync(ct);
+        return entity.Id;
     }
 }

@@ -1,8 +1,14 @@
 ﻿using MediatR;
+using UserService.Application.Common.Caching;
 
+namespace UserService.Application.Users.Commands;
 
-namespace UserService.Application.Users.Command.Create
+public sealed record CreateUserCommand(
+    string Email,
+    string Password,
+    string DisplayName,
+    string[] Roles
+) : IRequest<Guid>, ICacheInvalidator
 {
-    public sealed record CreateUserCommand(string Email, string Password, string DisplayName, string[] Roles)
-        : IRequest<UserDto>;
+    public string[] PrefixesToInvalidate => new[] { UserCacheKeys.UsersListPrefix };
 }

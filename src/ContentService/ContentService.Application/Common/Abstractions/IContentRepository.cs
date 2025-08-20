@@ -9,5 +9,6 @@ namespace ContentService.Application.Common.Abstractions
         Task AddAsync(Content content, CancellationToken ct = default);
         void Remove(Content content);
         IQueryable<Content> Query(); // list/sorgular (çoğunlukla AsNoTracking)
+        void Update(Content entity);
     }
 }

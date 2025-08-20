@@ -1,6 +1,10 @@
 ﻿using MediatR;
+using UserService.Application.Common.Caching;
 
-namespace UserService.Application.Users.Query.GetById
+namespace UserService.Application.Users.Queries;
+
+public sealed record GetUserByIdQuery(Guid Id) : IRequest<UserDto>, ICacheableQuery<UserDto>
 {
-    public sealed record GetUserByIdQuery(Guid Id) : IRequest<UserDto?>;
+    public string CacheKey => $"{UserCacheKeys.UsersByIdPrefix}{Id:N}";
+    public TimeSpan? Expiration => TimeSpan.FromMinutes(1);
 }

@@ -18,6 +18,7 @@ using UserService.Domain.Entities;
 using UserService.Infrastructure.Persistence;
 using UserService.Infrastructure.Repositories;
 using UserService.Infrastructure.Security;
+using Shared.Web.Caching;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -146,6 +147,10 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
+builder.Services.AddRedisCache(builder.Configuration); // appsettings: "Redis"
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CacheInvalidationBehavior<,>));
 
 var app = builder.Build();
 

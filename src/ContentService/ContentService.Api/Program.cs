@@ -2,15 +2,18 @@
 using ContentService.Application.Common.Abstractions;
 using ContentService.Application.Common.Behaviors;
 using ContentService.Application.Contents;
-using ContentService.Application.Contents.Command.Create;
+using ContentService.Application.Contents.Commands;
 using ContentService.Infrastructure.Persistence;
 using ContentService.Infrastructure.Repositories;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Shared.Web;
+using Shared.Web.Caching;
 using Shared.Web.Middleware;
 using System.Text.Json.Serialization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +69,10 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "ContentService", Version = "v1" }); 
 });
+
+builder.Services.AddRedisCache(builder.Configuration); // "Redis"
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CacheInvalidationBehavior<,>));
 
 var app = builder.Build();
 

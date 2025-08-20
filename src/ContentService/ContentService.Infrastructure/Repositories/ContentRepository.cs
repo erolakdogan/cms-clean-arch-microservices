@@ -18,7 +18,7 @@ namespace ContentService.Infrastructure.Repositories
             => await db.Contents.AddAsync(content, ct);
 
         public void Remove(Content content) => db.Contents.Remove(content);
-
+        public void Update(Content content) => db.Contents.Update(content);
         public IQueryable<Content> Query() => db.Contents.AsNoTracking();
     }
 }

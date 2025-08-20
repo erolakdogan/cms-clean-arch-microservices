@@ -2,21 +2,33 @@
 using Microsoft.EntityFrameworkCore;
 using UserService.Application.Common.Abstractions;
 
-namespace UserService.Application.Users.Command.Update
+namespace UserService.Application.Users.Commands;
+
+public sealed class UpdateUserHandler(
+    IUserRepository repo,
+    IUnitOfWork uow,
+    IPasswordHasherService hasher)
+    : IRequestHandler<UpdateUserCommand>
 {
-    public sealed class DeleteUserHandler(IUserRepository repo, IUnitOfWork uow, UsersMapper mapper)
-    : IRequestHandler<UpdateUserCommand, UserDto>
+    public async Task Handle(UpdateUserCommand req, CancellationToken ct)
     {
-        public async Task<UserDto> Handle(UpdateUserCommand req, CancellationToken ct)
-        {
-            var updateUserItem = await repo.Query().FirstOrDefaultAsync(x => x.Id == req.Id, ct);
-            if (updateUserItem is null) throw new KeyNotFoundException("User not found.");
+        var user = await repo.Query().FirstOrDefaultAsync(u => u.Id == req.Id, ct);
+        if (user is null)
+            throw new KeyNotFoundException($"User '{req.Id}' not found.");
 
-            updateUserItem.DisplayName = req.DisplayName;
-            updateUserItem.Roles = req.Roles;
+        if (!string.IsNullOrWhiteSpace(req.Email))
+            user.Email = req.Email.Trim();
 
-            await uow.SaveChangesAsync(ct);
-            return mapper.ToDto(updateUserItem);
-        }
+        if (!string.IsNullOrWhiteSpace(req.Password))
+            user.PasswordHash = hasher.Hash(req.Password);
+
+        if (!string.IsNullOrWhiteSpace(req.DisplayName))
+            user.DisplayName = req.DisplayName.Trim();
+
+        if (req.Roles is not null)
+            user.Roles = req.Roles;
+
+        repo.Update(user);
+        await uow.SaveChangesAsync(ct);
     }
 }

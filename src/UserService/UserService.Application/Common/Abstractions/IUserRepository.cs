@@ -8,6 +8,7 @@ namespace UserService.Application.Common.Abstractions
         Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
         Task AddAsync(User user, CancellationToken ct = default);
         void Remove(User user);
-        IQueryable<User> Query(); // çoğunlukla AsNoTracking
+        IQueryable<User> Query();
+        void Update(User user);
     }
 }

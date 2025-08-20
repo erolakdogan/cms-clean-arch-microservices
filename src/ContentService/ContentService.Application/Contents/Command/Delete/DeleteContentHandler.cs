@@ -1,17 +1,19 @@
 ﻿using ContentService.Application.Common.Abstractions;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
-namespace ContentService.Application.Contents.Command.Delete
+namespace ContentService.Application.Contents.Commands;
+
+public sealed class DeleteContentHandler(IContentRepository repo, IUnitOfWork uow)
+    : IRequestHandler<DeleteContentCommand>
 {
-    public sealed class DeleteContentHandler(IContentRepository repo, IUnitOfWork uow)
-    : IRequestHandler<DeleteContentCommand, Unit>
+    public async Task Handle(DeleteContentCommand req, CancellationToken ct)
     {
-        public async Task<Unit> Handle(DeleteContentCommand req, CancellationToken ct)
-        {
-            var contentItem = await repo.GetByIdAsync(req.Id, ct) ?? throw new KeyNotFoundException("Content not found.");
-            repo.Remove(contentItem);
-            await uow.SaveChangesAsync(ct);
-            return Unit.Value;
-        }
+        var entity = await repo.Query().FirstOrDefaultAsync(c => c.Id == req.Id, ct);
+        if (entity is null)
+            throw new KeyNotFoundException($"Content '{req.Id}' not found.");
+
+        repo.Remove(entity);
+        await uow.SaveChangesAsync(ct);
     }
 }

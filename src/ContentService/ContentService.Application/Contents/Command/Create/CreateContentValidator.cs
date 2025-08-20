@@ -1,20 +1,17 @@
-﻿using ContentService.Application.Common;
-using FluentValidation;
+﻿using FluentValidation;
 
-namespace ContentService.Application.Contents.Command.Create
+namespace ContentService.Application.Contents.Commands;
+
+public sealed class CreateContentValidator : AbstractValidator<CreateContentCommand>
 {
-    public sealed class CreateContentValidator : AbstractValidator<CreateContentCommand>
+    public CreateContentValidator()
     {
-        public CreateContentValidator()
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Body).NotEmpty();
+        RuleFor(x => x.AuthorId).NotEmpty();
+        When(x => x.Slug is not null, () =>
         {
-            RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.Body).NotEmpty();
-            RuleFor(x => x.AuthorId).NotEmpty();
-
-            // Slug opsiyonel, varsa formatı kontrol et
-            RuleFor(x => x.Slug)
-                .Must(s => string.IsNullOrWhiteSpace(s) || SlugHelper.IsValidSlug(s!))
-                .WithMessage("Slug must be lowercase, alphanumeric and may include single dashes.");
-        }
+            RuleFor(x => x.Slug!).NotEmpty().MaximumLength(200);
+        });
     }
 }

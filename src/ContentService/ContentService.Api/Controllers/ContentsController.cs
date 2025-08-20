@@ -1,72 +1,81 @@
 ﻿using Asp.Versioning;
-using ContentService.Api.Contracts.Contents;
+using ContentService.Application.Common.Models;
 using ContentService.Application.Contents;
-using ContentService.Application.Contents.Command.Create;
-using ContentService.Application.Contents.Command.Delete;
-using ContentService.Application.Contents.Command.Update;
+using ContentService.Application.Contents.Commands;
+using ContentService.Application.Contents.Queries;
 using ContentService.Application.Contents.Query.GetById;
-using ContentService.Application.Contents.Query.GetBySlug;
-using ContentService.Application.Contents.Query.List;
+using ContentService.Domain.Entities;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ContentService.Api.Controllers
+namespace ContentService.Api.Controllers;
+
+[ApiController]
+[ApiVersion(1.0)]
+[Route("api/v{version:apiVersion}/contents")]
+[Produces("application/json")]
+[Tags("Contents")]
+public sealed class ContentsController(IMediator mediator) : ControllerBase
 {
-    [ApiController]
-    [ApiVersion("1.0")]
-    [Route("api/v{version:apiVersion}/contents")]
-    public sealed class ContentsController(IMediator mediator) : ControllerBase
+    /// <summary>List contents with paging & search</summary>
+    [HttpGet]
+    [AllowAnonymous] 
+    [ProducesResponseType(typeof(PagedResult<ContentDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ContentDto>>> List(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
     {
-        private static ContentResponse ToResponse(ContentDto d) =>
-            new(d.Id, d.Title, d.Body, d.AuthorId, d.Status, d.Slug, d.CreatedAt, d.UpdatedAt);
+        var result = await mediator.Send(new ListContentsQuery(page, pageSize, search), ct);
+        return Ok(result);
+    }
 
-        [HttpPost]
-        public async Task<ActionResult<ContentResponse>> Create([FromBody] ContentCreateRequest req, CancellationToken ct)
-        {
-            var dto = await mediator.Send(new CreateContentCommand(req.Title, req.Body, req.AuthorId, req.Slug), ct);
-            var resp = ToResponse(dto);
-            return CreatedAtAction(nameof(GetById), new { id = resp.Id, version = "1.0" }, resp);
-        }
+    /// <summary>Get single content</summary>
+    [HttpGet("{id:guid}")]
+    [Authorize] 
+    [ProducesResponseType(typeof(ContentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ContentDto>> Get(Guid id, CancellationToken ct)
+    {
+        var dto = await mediator.Send(new GetContentByIdQuery(id), ct);
+        return Ok(dto);
+    }
 
-        [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ContentResponse>> GetById(Guid id, CancellationToken ct)
-        {
-            var dto = await mediator.Send(new GetContentByIdQuery(id), ct);
-            return dto is null ? NotFound() : Ok(ToResponse(dto));
-        }
+    /// <summary>Create a content</summary>
+    [HttpPost]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreateContentCommand cmd, CancellationToken ct)
+    {
+        var id = await mediator.Send(cmd, ct);
+        return CreatedAtAction(nameof(Get),
+            new { id, version = HttpContext.GetRequestedApiVersion()?.ToString() ?? "1" },
+            new { id });
+    }
 
-        [HttpGet("by-slug/{slug}")]
-        public async Task<ActionResult<ContentResponse>> GetBySlug(string slug, CancellationToken ct)
-        {
-            var dto = await mediator.Send(new GetContentBySlugQuery(slug), ct);
-            return dto is null ? NotFound() : Ok(ToResponse(dto));
-        }
+    /// <summary>Update a content</summary>
+    [HttpPut("{id:guid}")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateContentCommand body, CancellationToken ct)
+    {
+        var cmd = body with { Id = id };
+        await mediator.Send(cmd, ct);
+        return NoContent();
+    }
 
-        [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<ContentResponse>>> List(
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] string? status = null,
-            [FromQuery] Guid? authorId = null,
-            [FromQuery] string? search = null,
-            CancellationToken ct = default)
-        {
-            var list = await mediator.Send(new ListContentsQuery(page, pageSize, status, authorId, search), ct);
-            return Ok(list.Select(ToResponse).ToList());
-        }
-
-        [HttpPut("{id:guid}")]
-        public async Task<ActionResult<ContentResponse>> Update(Guid id, [FromBody] ContentUpdateRequest req, CancellationToken ct)
-        {
-            var dto = await mediator.Send(new UpdateContentCommand(id, req.Title, req.Body, req.Status, req.Slug), ct);
-            return Ok(ToResponse(dto));
-        }
-
-        [HttpDelete("{id:guid}")]
-        public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
-        {
-            await mediator.Send(new DeleteContentCommand(id), ct);
-            return NoContent();
-        }
+    /// <summary>Delete a content</summary>
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        await mediator.Send(new DeleteContentCommand(id), ct);
+        return NoContent();
     }
 }

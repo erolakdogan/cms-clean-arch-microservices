@@ -1,15 +1,21 @@
 ﻿using MediatR;
+using Microsoft.EntityFrameworkCore;
 using UserService.Application.Common.Abstractions;
 
-namespace UserService.Application.Users.Query.GetById
+namespace UserService.Application.Users.Queries;
+
+public sealed class GetUserByIdHandler(IUserRepository repo, UsersMapper mapper)
+    : IRequestHandler<GetUserByIdQuery, UserDto>
 {
-    public sealed class GetUserByIdHandler(IUserRepository repo, UsersMapper mapper)
-    : IRequestHandler<GetUserByIdQuery, UserDto?>
+    public async Task<UserDto> Handle(GetUserByIdQuery req, CancellationToken ct)
     {
-        public async Task<UserDto?> Handle(GetUserByIdQuery req, CancellationToken ct)
-        {
-            var userItem = await repo.GetByIdAsync(req.Id, ct);
-            return userItem is null ? null : mapper.ToDto(userItem);
-        }
+        var entity = await repo.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == req.Id, ct);
+
+        if (entity is null)
+            throw new KeyNotFoundException($"User '{req.Id}' not found.");
+
+        return mapper.ToDto(entity);
     }
 }

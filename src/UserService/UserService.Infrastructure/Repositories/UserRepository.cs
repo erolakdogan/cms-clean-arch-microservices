@@ -20,5 +20,8 @@ namespace UserService.Infrastructure.Repositories
         public void Remove(User user) => db.Users.Remove(user);
 
         public IQueryable<User> Query() => db.Users.AsNoTracking();
+
+        public void Update(User user) => db.Users.Update(user);
+
     }
 }

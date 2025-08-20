@@ -1,6 +1,13 @@
 ﻿using MediatR;
+using ContentService.Application.Common.Caching;
 
-namespace ContentService.Application.Contents.Command.Delete
+namespace ContentService.Application.Contents.Commands;
+
+public sealed record DeleteContentCommand(Guid Id) : IRequest, ICacheInvalidator
 {
-    public sealed record DeleteContentCommand(Guid Id) : IRequest<Unit>;
+    public string[] PrefixesToInvalidate => new[]
+    {
+        $"{ContentCacheKeys.ContentsByIdPrefix}{Id:N}",
+        ContentCacheKeys.ContentsListPrefix
+    };
 }
