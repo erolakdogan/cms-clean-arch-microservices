@@ -13,7 +13,7 @@ namespace UserService.Application.Users.Command.Create
             var exists = await repo.Query().AnyAsync(u => u.Email == req.Email, ct);
             if (exists) throw new InvalidOperationException("Email already exists.");
 
-            var user = new User
+            var createUserItem = new User
             {
                 Email = req.Email,
                 PasswordHash = "PLACEHOLDER",
@@ -21,10 +21,10 @@ namespace UserService.Application.Users.Command.Create
                 Roles = req.Roles
             };
 
-            await repo.AddAsync(user, ct);
+            await repo.AddAsync(createUserItem, ct);
             await uow.SaveChangesAsync(ct);
 
-            return mapper.ToDto(user);
+            return mapper.ToDto(createUserItem);
         }
     }
 }

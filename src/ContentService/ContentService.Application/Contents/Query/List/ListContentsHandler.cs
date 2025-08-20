@@ -13,18 +13,18 @@ namespace ContentService.Application.Contents.Query.List
             var page = Math.Max(1, req.Page);
             var size = Math.Clamp(req.PageSize, 1, 100);
 
-            var q = repo.Query();
+            var contentQueryList = repo.Query();
 
             if (!string.IsNullOrWhiteSpace(req.Status) && Enum.TryParse<ContentStatus>(req.Status, true, out var st))
-                q = q.Where(x => x.Status == st);
+                contentQueryList = contentQueryList.Where(x => x.Status == st);
 
             if (req.AuthorId is { } aid && aid != Guid.Empty)
-                q = q.Where(x => x.AuthorId == aid);
+                contentQueryList = contentQueryList.Where(x => x.AuthorId == aid);
 
             if (!string.IsNullOrWhiteSpace(req.Search))
-                q = q.Where(x => EF.Functions.Like(x.Title, $"%{req.Search}%")); // pg_trgm varsa hızlı
+                contentQueryList = contentQueryList.Where(x => EF.Functions.Like(x.Title, $"%{req.Search}%")); // pg_trgm varsa hızlı
 
-            var data = await q
+            var data = await contentQueryList
                 .OrderByDescending(x => x.CreatedAt)
                 .Skip((page - 1) * size)
                 .Take(size)

@@ -8,8 +8,8 @@ namespace UserService.Application.Users.Query.GetById
     {
         public async Task<UserDto?> Handle(GetUserByIdQuery req, CancellationToken ct)
         {
-            var u = await repo.GetByIdAsync(req.Id, ct);
-            return u is null ? null : mapper.ToDto(u);
+            var userItem = await repo.GetByIdAsync(req.Id, ct);
+            return userItem is null ? null : mapper.ToDto(userItem);
         }
     }
 }

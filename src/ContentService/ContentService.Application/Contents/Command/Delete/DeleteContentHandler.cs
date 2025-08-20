@@ -8,8 +8,8 @@ namespace ContentService.Application.Contents.Command.Delete
     {
         public async Task<Unit> Handle(DeleteContentCommand req, CancellationToken ct)
         {
-            var e = await repo.GetByIdAsync(req.Id, ct) ?? throw new KeyNotFoundException("Content not found.");
-            repo.Remove(e);
+            var contentItem = await repo.GetByIdAsync(req.Id, ct) ?? throw new KeyNotFoundException("Content not found.");
+            repo.Remove(contentItem);
             await uow.SaveChangesAsync(ct);
             return Unit.Value;
         }

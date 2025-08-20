@@ -9,14 +9,14 @@ namespace UserService.Application.Users.Command.Update
     {
         public async Task<UserDto> Handle(UpdateUserCommand req, CancellationToken ct)
         {
-            var u = await repo.Query().FirstOrDefaultAsync(x => x.Id == req.Id, ct);
-            if (u is null) throw new KeyNotFoundException("User not found.");
+            var updateUserItem = await repo.Query().FirstOrDefaultAsync(x => x.Id == req.Id, ct);
+            if (updateUserItem is null) throw new KeyNotFoundException("User not found.");
 
-            u.DisplayName = req.DisplayName;
-            u.Roles = req.Roles;
+            updateUserItem.DisplayName = req.DisplayName;
+            updateUserItem.Roles = req.Roles;
 
             await uow.SaveChangesAsync(ct);
-            return mapper.ToDto(u);
+            return mapper.ToDto(updateUserItem);
         }
     }
 }

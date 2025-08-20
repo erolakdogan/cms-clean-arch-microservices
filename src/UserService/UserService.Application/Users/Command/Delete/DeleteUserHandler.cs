@@ -8,8 +8,8 @@ namespace UserService.Application.Users.Command.Delete
     {
         public async Task<Unit> Handle(DeleteUserCommand req, CancellationToken ct)
         {
-            var u = await repo.GetByIdAsync(req.Id, ct) ?? throw new KeyNotFoundException("User not found.");
-            repo.Remove(u);
+            var deleteUserItem = await repo.GetByIdAsync(req.Id, ct) ?? throw new KeyNotFoundException("User not found.");
+            repo.Remove(deleteUserItem);
             await uow.SaveChangesAsync(ct);
             return Unit.Value;
         }

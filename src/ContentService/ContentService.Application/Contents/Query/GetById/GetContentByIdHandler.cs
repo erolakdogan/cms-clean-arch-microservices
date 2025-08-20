@@ -7,8 +7,8 @@ namespace ContentService.Application.Contents.Query.GetById
     {
         public async Task<ContentDto?> Handle(GetContentByIdQuery req, CancellationToken ct)
         {
-            var e = await repo.GetByIdAsync(req.Id, ct);
-            return e is null ? null : mapper.ToDto(e);
+            var contentItem = await repo.GetByIdAsync(req.Id, ct);
+            return contentItem is null ? null : mapper.ToDto(contentItem);
         }
     }
 }

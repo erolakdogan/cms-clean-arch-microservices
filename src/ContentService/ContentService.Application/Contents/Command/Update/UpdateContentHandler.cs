@@ -10,23 +10,23 @@ namespace ContentService.Application.Contents.Command.Update
     {
         public async Task<ContentDto> Handle(UpdateContentCommand req, CancellationToken ct)
         {
-            var e = await repo.Query().FirstOrDefaultAsync(x => x.Id == req.Id, ct);
-            if (e is null) throw new KeyNotFoundException("Content not found.");
+            var contentItem = await repo.Query().FirstOrDefaultAsync(x => x.Id == req.Id, ct);
+            if (contentItem is null) throw new KeyNotFoundException("Content not found.");
 
-            e.Title = req.Title;
-            e.Body = req.Body;
-            e.Status = Enum.Parse<ContentStatus>(req.Status, true);
-            e.UpdatedAt = DateTime.UtcNow;
+            contentItem.Title = req.Title;
+            contentItem.Body = req.Body;
+            contentItem.Status = Enum.Parse<ContentStatus>(req.Status, true);
+            contentItem.UpdatedAt = DateTime.UtcNow;
 
             if (!string.IsNullOrWhiteSpace(req.Slug))
             {
                 var newSlug = req.Slug.Trim().ToLowerInvariant();
-                if (newSlug != e.Slug)
-                    e.Slug = await MakeUniqueSlugAsync(newSlug, e.Id, ct);
+                if (newSlug != contentItem.Slug)
+                    contentItem.Slug = await MakeUniqueSlugAsync(newSlug, contentItem.Id, ct);
             }
 
             await uow.SaveChangesAsync(ct);
-            return mapper.ToDto(e);
+            return mapper.ToDto(contentItem);
         }
 
         private async Task<string> MakeUniqueSlugAsync(string baseSlug, Guid currentId, CancellationToken ct)

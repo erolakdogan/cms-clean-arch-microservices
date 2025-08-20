@@ -21,7 +21,7 @@ namespace ContentService.Application.Contents.Command.Create
             // unique slug üret (hello-world, hello-world-2, ...)
             var slug = await MakeUniqueSlugAsync(baseSlug, ct);
 
-            var entity = new Content
+            var contentCommand = new Content
             {
                 Title = req.Title,
                 Body = req.Body,
@@ -30,10 +30,10 @@ namespace ContentService.Application.Contents.Command.Create
                 Slug = slug
             };
 
-            await repo.AddAsync(entity, ct);
+            await repo.AddAsync(contentCommand, ct);
             await uow.SaveChangesAsync(ct);
 
-            return mapper.ToDto(entity);
+            return mapper.ToDto(contentCommand);
         }
 
         private async Task<string> MakeUniqueSlugAsync(string baseSlug, CancellationToken ct)

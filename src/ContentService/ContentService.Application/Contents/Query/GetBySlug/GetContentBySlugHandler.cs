@@ -7,8 +7,8 @@ namespace ContentService.Application.Contents.Query.GetBySlug
     {
         public async Task<ContentDto?> Handle(GetContentBySlugQuery req, CancellationToken ct)
         {
-            var e = await repo.GetBySlugAsync(req.Slug.ToLowerInvariant(), ct);
-            return e is null ? null : mapper.ToDto(e);
+            var contentBySlugItem = await repo.GetBySlugAsync(req.Slug.ToLowerInvariant(), ct);
+            return contentBySlugItem is null ? null : mapper.ToDto(contentBySlugItem);
         }
     }
 }
