@@ -7,19 +7,27 @@ using ContentService.Application.Contents.Query.GetById;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace ContentService.Api.Controllers;
 
+/// <summary>
+/// İçerik yönetimi uç noktaları.
+/// </summary>
 [ApiController]
 [ApiVersion(1.0)]
 [Route("api/v{version:apiVersion}/contents")]
 [Produces("application/json")]
-[Tags("Contents")]
+[Tags("İçerikler")]
 public sealed class ContentsController(IMediator mediator) : ControllerBase
 {
-    /// <summary>List contents with paging & search</summary>
+    /// <summary>İçerikleri sayfalı listele.</summary>
+    /// <remarks>
+    /// `search` başlık/slug içinde arama yapar.
+    /// </remarks>
     [HttpGet]
-    [AllowAnonymous] 
+    [AllowAnonymous]
+    [SwaggerOperation(Summary = "İçerik listesi (sayfalı)", Description = "page, pageSize ve search ile filtreleme/sayfalama.")]
     [ProducesResponseType(typeof(PagedResult<ContentDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<ContentDto>>> List(
         [FromQuery] int page = 1,
@@ -31,9 +39,10 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>Get single content</summary>
+    /// <summary>Tek bir içeriği getir.</summary>
     [HttpGet("{id:guid}")]
-    [Authorize] 
+    [Authorize]
+    [SwaggerOperation(Summary = "Detay (Id ile)", Description = "İçeriği kimliği ile getirir.")]
     [ProducesResponseType(typeof(ContentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ContentDto>> Get(Guid id, CancellationToken ct)
@@ -42,9 +51,10 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
         return Ok(dto);
     }
 
-    /// <summary>Create a content</summary>
+    /// <summary>Yeni içerik oluştur.</summary>
     [HttpPost]
     [Authorize]
+    [SwaggerOperation(Summary = "Oluştur (Admin)", Description = "Yeni içerik kaydı oluşturur.")]
     [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateContentCommand cmd, CancellationToken ct)
@@ -55,9 +65,10 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
             new { id });
     }
 
-    /// <summary>Update a content</summary>
+    /// <summary>İçeriği güncelle.</summary>
     [HttpPut("{id:guid}")]
-    [Authorize]
+    [Authorize(Policy = "AdminOnly")]
+    [SwaggerOperation(Summary = "Güncelle (Admin)")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateContentCommand body, CancellationToken ct)
@@ -67,9 +78,10 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
         return NoContent();
     }
 
-    /// <summary>Delete a content</summary>
+    /// <summary>İçeriği sil.</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize]
+    [Authorize(Policy = "AdminOnly")]
+    [SwaggerOperation(Summary = "Sil (Admin)")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)

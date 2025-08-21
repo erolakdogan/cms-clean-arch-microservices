@@ -1,14 +1,6 @@
 ﻿using Asp.Versioning;
-using FluentValidation;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
+using Asp.Versioning.ApiExplorer;
 using Microsoft.OpenApi.Models;
-using Polly;
-using Polly.Extensions.Http;
-using Serilog;
-using System.Net.Http;
-using System.Text.Json.Serialization;
-using System.Security.Claims;
 using ContentService.Application.Common.Abstractions;
 using ContentService.Application.Common.Behaviors;
 using ContentService.Application.Contents;
@@ -17,9 +9,17 @@ using ContentService.Application.UsersExternal;
 using ContentService.Infrastructure.Persistence;
 using ContentService.Infrastructure.Repositories;
 using ContentService.Infrastructure.UsersExternal;
+using FluentValidation;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Polly;
+using Serilog;
+using Serilog.Sinks.Grafana.Loki;
 using Shared.Web.Caching;
 using Shared.Web.Middleware;
 using Shared.Web.Security;
+using System.Security.Claims;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +28,19 @@ builder.Host.UseSerilog((ctx, lc) =>
 {
     lc.ReadFrom.Configuration(ctx.Configuration)
       .Enrich.FromLogContext()
+      .Enrich.WithProperty("service", ctx.HostingEnvironment.ApplicationName)
+      .Enrich.WithProperty("env", ctx.HostingEnvironment.EnvironmentName)
       .WriteTo.Console();
+
+    var lokiUrl = ctx.Configuration["Loki:Url"];
+    if (!string.IsNullOrWhiteSpace(lokiUrl))
+    {
+        lc.WriteTo.GrafanaLoki(lokiUrl, labels: new[]
+        {
+            new Serilog.Sinks.Grafana.Loki.LokiLabel { Key = "app", Value = ctx.HostingEnvironment.ApplicationName },
+            new Serilog.Sinks.Grafana.Loki.LokiLabel { Key = "env", Value = ctx.HostingEnvironment.EnvironmentName }
+        });
+    }
 });
 
 builder.Services.AddControllers()
@@ -129,7 +141,18 @@ builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ContentService", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = builder.Environment.ApplicationName, // "UserService" / "ContentService"
+        Version = "v1"
+    });
+
+    // XML yorumlarını dahil et (xml dosyası varsa)
+    var xml = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xml);
+    if (System.IO.File.Exists(xmlPath))
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+
     var securityScheme = new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -190,8 +213,22 @@ app.UseSerilogRequestLogging(opts =>
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwagger(c =>
+{
+    c.RouteTemplate = "swagger/{documentName}/swagger.json";
+});
+app.UseSwaggerUI(opt =>
+{
+    var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+    foreach (var desc in provider.ApiVersionDescriptions)
+    {
+        opt.SwaggerEndpoint($"/swagger/{desc.GroupName}/swagger.json",
+            $"{builder.Environment.ApplicationName} {desc.ApiVersion}");
+    }
+
+    opt.RoutePrefix = "swagger";
+    opt.DocumentTitle = builder.Environment.ApplicationName;
+});
 
 app.MapControllers();
 app.MapHealthChecks("/health");

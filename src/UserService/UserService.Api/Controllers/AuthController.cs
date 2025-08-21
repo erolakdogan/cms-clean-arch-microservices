@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Shared.Web.Security;
+using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -12,25 +14,61 @@ using UserService.Application.Common.Abstractions;
 
 namespace UserService.Api.Controllers
 {
+    /// <summary>
+    /// Kimlik doğrulama uç noktaları.
+    /// </summary>
     [ApiController]
     [ApiVersion(1.0)]
     [Route("api/v{version:apiVersion}/auth")]
-    public sealed class AuthController(
-     IOptions<JwtOptions> jwtOpt,
-     IUserRepository repo,
-     IPasswordHasherService hasher) : ControllerBase
+    [Produces("application/json")]
+    [Tags("Kimlik Doğrulama")]
+    public sealed class AuthController : ControllerBase
     {
-        public sealed record LoginRequest(string Email, string Password);
+        public sealed record LoginRequest(
+            [Required, EmailAddress] string Email,
+            [Required] string Password
+        );
 
+        public sealed record LoginResponse(
+            string AccessToken,
+            string TokenType,
+            int ExpiresIn
+        );
+
+        private readonly IOptions<JwtOptions> _jwt;
+        private readonly IUserRepository _repo;
+        private readonly IPasswordHasherService _hasher;
+
+        public AuthController(IOptions<JwtOptions> jwt, IUserRepository repo, IPasswordHasherService hasher)
+        {
+            _jwt = jwt;
+            _repo = repo;
+            _hasher = hasher;
+        }
+
+        /// <summary>Giriş yap ve JWT erişim anahtarı al.</summary>
+        /// <remarks>
+        /// Örnek istek:
+        /// 
+        ///     POST /api/v1/auth/login
+        ///     {
+        ///       "email": "admin@cms.local",
+        ///       "password": "P@ssw0rd!"
+        ///     }
+        /// 
+        /// </remarks>
         [HttpPost("login")]
         [AllowAnonymous]
+        [SwaggerOperation(Summary = "JWT token üretir", Description = "Geçerli e-posta/şifre ile oturum açıp erişim anahtarı döner.")]
+        [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] LoginRequest req, CancellationToken ct)
         {
-            var user = await repo.Query().FirstOrDefaultAsync(u => u.Email == req.Email, ct);
-            if (user is null || !hasher.Verify(user.PasswordHash, req.Password))
+            var user = await _repo.Query().FirstOrDefaultAsync(u => u.Email == req.Email, ct);
+            if (user is null || !_hasher.Verify(user.PasswordHash, req.Password))
                 return Unauthorized();
 
-            var jwt = jwtOpt.Value;
+            var jwt = _jwt.Value;
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -54,13 +92,7 @@ namespace UserService.Api.Controllers
                 signingCredentials: creds);
 
             var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
-
-            return Ok(new
-            {
-                accessToken,
-                tokenType = "Bearer",
-                expiresIn = (int)TimeSpan.FromMinutes(jwt.AccessTokenMinutes).TotalSeconds
-            });
+            return Ok(new LoginResponse(accessToken, "Bearer", (int)TimeSpan.FromMinutes(jwt.AccessTokenMinutes).TotalSeconds));
         }
     }
 }
