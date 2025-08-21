@@ -10,9 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace ContentService.Api.Controllers;
-
 /// <summary>
-/// İçerik yönetimi uç noktaları.
+/// İçerik yönetimi.
 /// </summary>
 [ApiController]
 [ApiVersion(1.0)]
@@ -22,9 +21,7 @@ namespace ContentService.Api.Controllers;
 public sealed class ContentsController(IMediator mediator) : ControllerBase
 {
     /// <summary>İçerikleri sayfalı listele.</summary>
-    /// <remarks>
-    /// `search` başlık/slug içinde arama yapar.
-    /// </remarks>
+    /// <remarks>`search` başlık/slug içinde arama yapar.</remarks>
     [HttpGet]
     [AllowAnonymous]
     [SwaggerOperation(Summary = "İçerik listesi (sayfalı)", Description = "page, pageSize ve search ile filtreleme/sayfalama.")]
@@ -45,6 +42,8 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
     [SwaggerOperation(Summary = "Detay (Id ile)", Description = "İçeriği kimliği ile getirir.")]
     [ProducesResponseType(typeof(ContentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ContentDto>> Get(Guid id, CancellationToken cancellationToken)
     {
         var contentDto = await mediator.Send(new GetContentByIdQuery(id), cancellationToken);
@@ -55,14 +54,18 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
     [HttpPost]
     [Authorize]
     [SwaggerOperation(Summary = "Oluştur (Admin)", Description = "Yeni içerik kaydı oluşturur.")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CreatedResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] CreateContentCommand createContentCommand, CancellationToken cancellationToken)
     {
         var id = await mediator.Send(createContentCommand, cancellationToken);
+        var body = new CreatedResponse(id);
+
         return CreatedAtAction(nameof(Get),
             new { id, version = HttpContext.GetRequestedApiVersion()?.ToString() ?? "1" },
-            new { id });
+            body);
     }
 
     /// <summary>İçeriği güncelle.</summary>
@@ -71,10 +74,12 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
     [SwaggerOperation(Summary = "Güncelle (Admin)")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateContentCommand updateContentCommand, CancellationToken cancellationToken)
     {
-        var createContentCommand = updateContentCommand with { Id = id };
-        await mediator.Send(createContentCommand, cancellationToken);
+        var cmd = updateContentCommand with { Id = id };
+        await mediator.Send(cmd, cancellationToken);
         return NoContent();
     }
 
@@ -84,6 +89,8 @@ public sealed class ContentsController(IMediator mediator) : ControllerBase
     [SwaggerOperation(Summary = "Sil (Admin)")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await mediator.Send(new DeleteContentCommand(id), cancellationToken);

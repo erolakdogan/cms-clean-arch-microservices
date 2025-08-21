@@ -1,6 +1,4 @@
-﻿using ContentService.Domain.Entities;
-
-namespace ContentService.Application.Contents
+﻿namespace ContentService.Application.Contents
 {
     public sealed record ContentDto
     {
@@ -14,8 +12,8 @@ namespace ContentService.Application.Contents
         public DateTime? UpdatedAt { get; init; }
 
         // Enrichment (UserService’den)
-        public string AuthorDisplayName { get; init; }
-        public string AuthorEmail { get; init; }
+        public string? AuthorDisplayName { get; init; }
+        public string? AuthorEmail { get; init; }
 
     }
 }

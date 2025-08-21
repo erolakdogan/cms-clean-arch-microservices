@@ -12,23 +12,19 @@ using UserService.Domain.Entities;
 namespace UserService.Api.Controllers;
 
 /// <summary>
-/// Kullanıcı yönetimi uç noktaları.
+/// Kullanıcı yönetimi.
 /// </summary>
 [ApiController]
 [ApiVersion(1.0)]
 [Route("api/v{version:apiVersion}/users")]
 [Produces("application/json")]
 [Tags("Kullanıcılar")]
-public sealed class UsersController : ControllerBase
+public sealed class UsersController(IMediator mediator) : ControllerBase
 {
-    private readonly IMediator _mediator;
-    public UsersController(IMediator mediator) => _mediator = mediator;
-
-
     /// <summary>Kullanıcıları sayfalı listele.</summary>
     [HttpGet]
-    [AllowAnonymous] 
-    [SwaggerOperation(Summary = "Kullanıcı listesi (sayfalı)", Description = "page ve pageSize ile sayfalama yapar.")]
+    [AllowAnonymous]
+    [SwaggerOperation(Summary = "Kullanıcı listesi (sayfalı)", Description = "page, pageSize ve search ile sayfalama/filtreleme yapar.")]
     [ProducesResponseType(typeof(PagedResult<UserDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<UserDto>>> List(
         [FromQuery] int page = 1,
@@ -36,7 +32,7 @@ public sealed class UsersController : ControllerBase
         [FromQuery] string? search = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new ListUsersQuery(page, pageSize, search), cancellationToken);
+        var result = await mediator.Send(new ListUsersQuery(page, pageSize, search), cancellationToken);
         return Ok(result);
     }
 
@@ -46,9 +42,11 @@ public sealed class UsersController : ControllerBase
     [SwaggerOperation(Summary = "Detay (Id ile)", Description = "Kullanıcıyı kimliği ile getirir.")]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<UserDto>> Get(Guid id, CancellationToken cancellationToken)
     {
-        var userDto = await _mediator.Send(new GetUserByIdQuery(id), cancellationToken);
+        var userDto = await mediator.Send(new GetUserByIdQuery(id), cancellationToken);
         return Ok(userDto);
     }
 
@@ -56,14 +54,18 @@ public sealed class UsersController : ControllerBase
     [HttpPost]
     [Authorize]
     [SwaggerOperation(Summary = "Oluştur (Admin)", Description = "Yeni kullanıcı kaydı oluşturur.")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CreatedResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] CreateUserCommand createUserCommand, CancellationToken cancellationToken)
     {
-        var id = await _mediator.Send(createUserCommand, cancellationToken);
+        var id = await mediator.Send(createUserCommand, cancellationToken);
+        var body = new CreatedResponse(id);
+
         return CreatedAtAction(nameof(Get),
             new { id, version = HttpContext.GetRequestedApiVersion()?.ToString() ?? "1" },
-            new { id });
+            body);
     }
 
     /// <summary>Kullanıcı bilgilerini güncelle.</summary>
@@ -72,11 +74,12 @@ public sealed class UsersController : ControllerBase
     [SwaggerOperation(Summary = "Güncelle (Admin)")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserCommand updateUserCommand, CancellationToken cancellationToken)
     {
-        // Komutun route id’siyle uyum
-        var createUserCommand = updateUserCommand with { Id = id };
-        await _mediator.Send(createUserCommand, cancellationToken);
+        var cmd = updateUserCommand with { Id = id };
+        await mediator.Send(cmd, cancellationToken);
         return NoContent();
     }
 
@@ -86,20 +89,23 @@ public sealed class UsersController : ControllerBase
     [SwaggerOperation(Summary = "Sil (Admin)")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new DeleteUserCommand(id), cancellationToken);
+        await mediator.Send(new DeleteUserCommand(id), cancellationToken);
         return NoContent();
     }
 
-    /// <summary>Internal: diğer servisler için minimal kullanıcı bilgisi</summary>
+    /// <summary>Internal: diğer servisler için minimal kullanıcı bilgisi.</summary>
     [HttpGet("{id:guid}/brief")]
     [Authorize(Policy = "S2SUsersRead")]
     [ProducesResponseType(typeof(UserBriefResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<UserBriefResponse>> GetBrief(Guid id, CancellationToken ct)
     {
-        var u = await _mediator.Send(new GetUserByIdQuery(id), ct);
+        var u = await mediator.Send(new GetUserByIdQuery(id), ct);
         return Ok(new UserBriefResponse
         {
             Id = u.Id,
