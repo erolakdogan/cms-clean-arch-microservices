@@ -2,9 +2,9 @@
 {
     public sealed class JwtOptions
     {
-        public string Issuer { get; set; } = "cmspoc";
-        public string Audience { get; set; } = "cmspoc.clients";
-        public string Key { get; set; } = "";                
-        public int AccessTokenMinutes { get; set; } = 30;
+        public string Issuer { get; init; } = default!;
+        public string Audience { get; init; } = default!;
+        public string Key { get; init; } = default!; // en az 32 byte
+        public int AccessTokenMinutes { get; init; } = 30;
     }
 }

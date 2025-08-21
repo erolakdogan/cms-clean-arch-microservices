@@ -2,8 +2,8 @@
 {
     public sealed class RedisCacheOptions
     {
-        public string Connection { get; set; } = "localhost:6379";
-        public string? Instance { get; set; } 
-        public int ScanPageSize { get; set; } = 500; 
+        public string ConnectionString { get; init; } = string.Empty;
+        public string InstanceName { get; init; } = "cmspoc:";
+        public int DefaultTtlSeconds { get; init; } = 60;
     }
 }

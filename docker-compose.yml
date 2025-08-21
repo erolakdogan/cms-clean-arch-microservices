@@ -1,0 +1,129 @@
+
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: cms-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cms-redis
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redisdata:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "${LOKI_PORT}:3100"
+    volumes:
+      - lokidata:/loki
+      - ./docker/loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  user-service:
+    build:
+      context: .
+      dockerfile: ./src/UserService/UserService.Api/Dockerfile
+    container_name: user-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__Db: "Host=postgres;Port=5432;Database=users;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Redis__Configuration: redis:6379,abortConnect=false
+      Redis__InstanceName:cmspoc:
+      Redis__DefaultTtlSeconds: "60"
+      Caching__Enabled: "true"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+      Jwt__Key: "${JWT_KEY}"
+      Loki__Url: "http://loki:3100"
+      Database__ApplyMigrations: "${APPLY_MIGRATIONS}"
+      Database__Seed: "${SEED}"
+    ports:
+      - "${USER_API_PORT}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+
+  content-service:
+    build:
+      context: .
+      dockerfile: ./src/ContentService/ContentService.Api/Dockerfile
+    container_name: content-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__Db: "Host=postgres;Port=5432;Database=contents;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Redis__Configuration: redis:6379,abortConnect=false
+      Redis__InstanceName:cmspoc:
+      Redis__DefaultTtlSeconds: "60"
+      Caching__Enabled: "true"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+      Jwt__Key: "${JWT_KEY}"
+      Loki__Url: "http://loki:3100"
+      Database__ApplyMigrations: "${APPLY_MIGRATIONS}"
+      Database__Seed: "${SEED}"
+      Users__BaseUrl: "http://user-service:8080"
+    ports:
+      - "${CONTENT_API_PORT}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+
+
+volumes:
+  pgdata:
+  redisdata:
+  lokidata:
+  grafana-data:

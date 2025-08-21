@@ -30,24 +30,25 @@ public sealed class ListContentsHandler(
                           .Take(size)
                           .ToListAsync(ct);
 
-        var items = mapper.ToDtoList(list);
-
-        // Distinct author IDs
-        var authorIds = list.Select(c => c.AuthorId).Distinct().ToArray();
-        var tasks = authorIds.ToDictionary(
-            id => id,
-            id => users.GetUserAsync(id, ct)
-        );
-        await Task.WhenAll(tasks.Values);
-
-        var displayById = tasks.ToDictionary(k => k.Key, v => v.Value.Result?.DisplayName);
-
-        items = items.Select((dto, idx) =>
+        var items = mapper.ToDtoList(list);     
+        var updatedItems = new List<ContentDto>(items.Count);
+        foreach (var dto in items)
         {
-            var authorId = list[idx].AuthorId;
-            return dto with { AuthorDisplayName = displayById.GetValueOrDefault(authorId) };
-        }).ToList();
+            var brief = await users.GetBriefAsync(dto.AuthorId, ct);
+            if (brief is not null)
+            {
+                updatedItems.Add(dto with
+                {
+                    AuthorDisplayName = brief.DisplayName,
+                    AuthorEmail = brief.Email
+                });
+            }
+            else
+            {
+                updatedItems.Add(dto);
+            }
+        }
 
-        return new PagedResult<ContentDto>(items, page, size, total);
+        return new PagedResult<ContentDto>(updatedItems, page, size, total);
     }
 }

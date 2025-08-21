@@ -1,0 +1,11 @@
+.git
+.gitignore
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/*.user
+**/*.suo
+**/*.swp
+**/node_modules/
+**/logs/

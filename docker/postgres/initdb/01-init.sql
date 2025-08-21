@@ -1,0 +1,10 @@
+CREATE DATABASE users;
+CREATE DATABASE contents;
+
+\connect users;
+CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+\connect contents;
+CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

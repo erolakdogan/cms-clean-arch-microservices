@@ -21,8 +21,7 @@ namespace ContentService.Application.Contents.Query.GetById
 
             var dto = mapper.ToDto(entity);
 
-            // Enrichment
-            var user = await users.GetUserAsync(entity.AuthorId, ct);
+            var user = await users.GetBriefAsync(entity.AuthorId, ct);
             dto = dto with { AuthorDisplayName = user?.DisplayName };
 
             return dto;

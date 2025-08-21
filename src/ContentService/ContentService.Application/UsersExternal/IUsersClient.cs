@@ -1,9 +1,6 @@
-﻿namespace ContentService.Application.UsersExternal
-{
-    public sealed record UserSummary(Guid Id, string Email, string DisplayName, string[] Roles);
+﻿namespace ContentService.Application.UsersExternal;
 
-    public interface IUsersClient
-    {
-        Task<UserSummary?> GetUserAsync(Guid id, CancellationToken ct = default);
-    }
+public interface IUsersClient
+{
+    Task<UserBriefDto?> GetBriefAsync(Guid id, CancellationToken ct = default);
 }

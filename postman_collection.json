@@ -1,0 +1,324 @@
+{
+  "info": {
+    "name": "CMS PoC (User & Content)",
+    "_postman_id": "e3b3b5b8-1111-2222-3333-444455556666",
+    "description": "UserService ve ContentService i�in haz�r istekler. Login sonras� token otomatik kaydedilir.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "user_base",
+      "value": "http://localhost:7146/api/v1"
+    },
+    {
+      "key": "content_base",
+      "value": "http://localhost:7099/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "adminId",
+      "value": "11111111-1111-1111-1111-111111111111"
+    },
+    {
+      "key": "editorId",
+      "value": "22222222-2222-2222-2222-222222222222"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth / Login (UserService)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{user_base}}/auth/login",
+          "host": [ "{{user_base}}" ],
+          "path": [ "auth", "login" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@cms.local\",\n  \"password\": \"P@ssw0rd!\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const data = pm.response.json();",
+              "  if (data && data.accessToken) {",
+              "    pm.collectionVariables.set('token', data.accessToken);",
+              "    pm.test('Token set', function(){ pm.expect(data.accessToken.length).to.be.above(10); });",
+              "  }",
+              "} else {",
+              "  pm.test('Login failed', function(){ pm.expect.fail('Login yan�t� 200 de�il'); });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users / List",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{user_base}}/users?page=1&pageSize=20",
+          "host": [ "{{user_base}}" ],
+          "path": [ "users" ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "pageSize",
+              "value": "20"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Users / GetById",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{user_base}}/users/{{userId}}",
+          "host": [ "{{user_base}}" ],
+          "path": [ "users", "{{userId}}" ]
+        }
+      },
+      "variable": [
+        {
+          "key": "userId",
+          "value": "{{adminId}}"
+        }
+      ]
+    },
+    {
+      "name": "Users / Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{user_base}}/users",
+          "host": [ "{{user_base}}" ],
+          "path": [ "users" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"demo{{$randomInt}}@cms.local\",\n  \"password\": \"P@ssw0rd!\",\n  \"displayName\": \"Demo Kullan�c�\",\n  \"roles\": [\"Editor\"]\n}"
+        }
+      }
+    },
+    {
+      "name": "Users / Update",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{user_base}}/users/{{userId}}",
+          "host": [ "{{user_base}}" ],
+          "path": [ "users", "{{userId}}" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@cms.local\",\n  \"password\": \"P@ssw0rd!\",\n  \"displayName\": \"Administrator (Updated)\",\n  \"roles\": [\"Admin\"]\n}"
+        }
+      },
+      "variable": [
+        {
+          "key": "userId",
+          "value": "{{adminId}}"
+        }
+      ]
+    },
+    {
+      "name": "Users / Delete",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{user_base}}/users/{{userId}}",
+          "host": [ "{{user_base}}" ],
+          "path": [ "users", "{{userId}}" ]
+        }
+      },
+      "variable": [
+        {
+          "key": "userId",
+          "value": "{{editorId}}"
+        }
+      ]
+    },
+    {
+      "name": "Contents / List (anon)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{content_base}}/contents?page=1&pageSize=20",
+          "host": [ "{{content_base}}" ],
+          "path": [ "contents" ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "pageSize",
+              "value": "20"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Contents / GetById",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{content_base}}/contents/{{contentId}}",
+          "host": [ "{{content_base}}" ],
+          "path": [ "contents", "{{contentId}}" ]
+        }
+      },
+      "variable": [
+        {
+          "key": "contentId",
+          "value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
+        }
+      ]
+    },
+    {
+      "name": "Contents / Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{content_base}}/contents",
+          "host": [ "{{content_base}}" ],
+          "path": [ "contents" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Deneme {{$timestamp}}\",\n  \"body\": \"Merhaba d�nya\",\n  \"authorId\": \"{{adminId}}\",\n  \"status\": 1,\n  \"slug\": \"deneme-{{$timestamp}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Contents / Update",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{content_base}}/contents/{{contentId}}",
+          "host": [ "{{content_base}}" ],
+          "path": [ "contents", "{{contentId}}" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"G�ncellenmi� Ba�l�k\",\n  \"body\": \"G�ncellenmi� metin\",\n  \"authorId\": \"{{adminId}}\",\n  \"status\": 1,\n  \"slug\": \"guncellenmis-baslik\"\n}"
+        }
+      },
+      "variable": [
+        {
+          "key": "contentId",
+          "value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
+        }
+      ]
+    },
+    {
+      "name": "Contents / Delete",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{content_base}}/contents/{{contentId}}",
+          "host": [ "{{content_base}}" ],
+          "path": [ "contents", "{{contentId}}" ]
+        }
+      },
+      "variable": [
+        {
+          "key": "contentId",
+          "value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"
+        }
+      ]
+    }
+  ]
+}

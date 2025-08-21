@@ -7,6 +7,7 @@ using UserService.Application.Common.Models;
 using UserService.Application.Users;
 using UserService.Application.Users.Commands;
 using UserService.Application.Users.Queries;
+using UserService.Domain.Entities;
 
 namespace UserService.Api.Controllers;
 
@@ -33,9 +34,9 @@ public sealed class UsersController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? search = null,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new ListUsersQuery(page, pageSize, search), ct);
+        var result = await _mediator.Send(new ListUsersQuery(page, pageSize, search), cancellationToken);
         return Ok(result);
     }
 
@@ -45,21 +46,21 @@ public sealed class UsersController : ControllerBase
     [SwaggerOperation(Summary = "Detay (Id ile)", Description = "Kullanıcıyı kimliği ile getirir.")]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<UserDto>> Get(Guid id, CancellationToken ct)
+    public async Task<ActionResult<UserDto>> Get(Guid id, CancellationToken cancellationToken)
     {
-        var dto = await _mediator.Send(new GetUserByIdQuery(id), ct);
-        return Ok(dto);
+        var userDto = await _mediator.Send(new GetUserByIdQuery(id), cancellationToken);
+        return Ok(userDto);
     }
 
     /// <summary>Yeni kullanıcı oluştur.</summary>
     [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     [SwaggerOperation(Summary = "Oluştur (Admin)", Description = "Yeni kullanıcı kaydı oluşturur.")]
     [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create([FromBody] CreateUserCommand cmd, CancellationToken ct)
+    public async Task<IActionResult> Create([FromBody] CreateUserCommand createUserCommand, CancellationToken cancellationToken)
     {
-        var id = await _mediator.Send(cmd, ct);
+        var id = await _mediator.Send(createUserCommand, cancellationToken);
         return CreatedAtAction(nameof(Get),
             new { id, version = HttpContext.GetRequestedApiVersion()?.ToString() ?? "1" },
             new { id });
@@ -67,27 +68,43 @@ public sealed class UsersController : ControllerBase
 
     /// <summary>Kullanıcı bilgilerini güncelle.</summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     [SwaggerOperation(Summary = "Güncelle (Admin)")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserCommand body, CancellationToken ct)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserCommand updateUserCommand, CancellationToken cancellationToken)
     {
         // Komutun route id’siyle uyum
-        var cmd = body with { Id = id };
-        await _mediator.Send(cmd, ct);
+        var createUserCommand = updateUserCommand with { Id = id };
+        await _mediator.Send(createUserCommand, cancellationToken);
         return NoContent();
     }
 
     /// <summary>Kullanıcıyı sil.</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     [SwaggerOperation(Summary = "Sil (Admin)")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new DeleteUserCommand(id), ct);
+        await _mediator.Send(new DeleteUserCommand(id), cancellationToken);
         return NoContent();
+    }
+
+    /// <summary>Internal: diğer servisler için minimal kullanıcı bilgisi</summary>
+    [HttpGet("{id:guid}/brief")]
+    [Authorize(Policy = "S2SUsersRead")]
+    [ProducesResponseType(typeof(UserBriefResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserBriefResponse>> GetBrief(Guid id, CancellationToken ct)
+    {
+        var u = await _mediator.Send(new GetUserByIdQuery(id), ct);
+        return Ok(new UserBriefResponse
+        {
+            Id = u.Id,
+            Email = u.Email,
+            DisplayName = u.DisplayName
+        });
     }
 }

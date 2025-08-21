@@ -14,6 +14,8 @@ namespace ContentService.Application.Contents
         public DateTime? UpdatedAt { get; init; }
 
         // Enrichment (UserService’den)
-        public string? AuthorDisplayName { get; init; }
+        public string AuthorDisplayName { get; init; }
+        public string AuthorEmail { get; init; }
+
     }
 }

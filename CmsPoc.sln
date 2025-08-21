@@ -25,10 +25,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ContentService.Infrastructu
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution Items", "solution Items", "{27DEA930-C69B-43E9-B8CF-9AD1169C065A}"
 	ProjectSection(SolutionItems) = preProject
+		.dockerignore = .dockerignore
 		.editorconfig = .editorconfig
+		.env = .env
 		.gitattributes.txt = .gitattributes.txt
 		.gitignore = .gitignore
 		Directory.Build.props.xml = Directory.Build.props.xml
+		docker-compose.yml = docker-compose.yml
 		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection
@@ -40,6 +43,41 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "building-blocks", "building-blocks", "{BD452D29-85AF-473C-8ACA-AD3558773BE5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Web", "src\BuildingBlocks\Shared.Web\Shared.Web.csproj", "{E4EA5925-25DB-437B-95EB-621B751E4F79}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{AC41A6E7-40E8-4C1B-A2E1-206A6DE7288E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "postgres", "postgres", "{752F8E91-A237-42F5-B413-7137EFFC0C4A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "initdb", "initdb", "{16C28631-B561-496A-940B-804360716182}"
+	ProjectSection(SolutionItems) = preProject
+		01-init.sql = 01-init.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "redis", "redis", "{3121C2F9-6C81-4EE4-A4B1-19637DB8368D}"
+	ProjectSection(SolutionItems) = preProject
+		redis.conf = redis.conf
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "loki", "loki", "{D7727453-8957-4129-8977-E23BBCECD947}"
+	ProjectSection(SolutionItems) = preProject
+		loki-config.yaml = loki-config.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "grafana", "grafana", "{AF346893-1FEB-4279-8914-708F1620FFD5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "provisioning", "provisioning", "{3A72C4A7-B2C5-40D7-BCD3-31F8C8AE36DD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "datasources", "datasources", "{071A7FC0-1FB8-4EB2-8E29-191EA8F8F1EB}"
+	ProjectSection(SolutionItems) = preProject
+		datasource.yml = datasource.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{48E9CB22-3887-40B8-807E-8FC8DB76DE2A}"
+	ProjectSection(SolutionItems) = preProject
+		architecture.md = architecture.md
+		postman_collection.json = postman_collection.json
+		..\..\..\Downloads\system-context-diagram.png = ..\..\..\Downloads\system-context-diagram.png
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -100,6 +138,15 @@ Global
 		{FB25F833-EB21-496B-AEC6-FA18A20A7B77} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{BD452D29-85AF-473C-8ACA-AD3558773BE5} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{E4EA5925-25DB-437B-95EB-621B751E4F79} = {BD452D29-85AF-473C-8ACA-AD3558773BE5}
+		{AC41A6E7-40E8-4C1B-A2E1-206A6DE7288E} = {27DEA930-C69B-43E9-B8CF-9AD1169C065A}
+		{752F8E91-A237-42F5-B413-7137EFFC0C4A} = {AC41A6E7-40E8-4C1B-A2E1-206A6DE7288E}
+		{16C28631-B561-496A-940B-804360716182} = {752F8E91-A237-42F5-B413-7137EFFC0C4A}
+		{3121C2F9-6C81-4EE4-A4B1-19637DB8368D} = {AC41A6E7-40E8-4C1B-A2E1-206A6DE7288E}
+		{D7727453-8957-4129-8977-E23BBCECD947} = {AC41A6E7-40E8-4C1B-A2E1-206A6DE7288E}
+		{AF346893-1FEB-4279-8914-708F1620FFD5} = {AC41A6E7-40E8-4C1B-A2E1-206A6DE7288E}
+		{3A72C4A7-B2C5-40D7-BCD3-31F8C8AE36DD} = {AF346893-1FEB-4279-8914-708F1620FFD5}
+		{071A7FC0-1FB8-4EB2-8E29-191EA8F8F1EB} = {3A72C4A7-B2C5-40D7-BCD3-31F8C8AE36DD}
+		{48E9CB22-3887-40B8-807E-8FC8DB76DE2A} = {27DEA930-C69B-43E9-B8CF-9AD1169C065A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {74616B61-1F72-4E45-8201-B101DD72E9BE}
