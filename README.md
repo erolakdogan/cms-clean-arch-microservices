@@ -53,6 +53,6 @@ dotnet test
 - CQRS (MediatR), Validasyon (FluentValidation),Mapping (Mapperly) Cross-cutting (Serilog, Middleware)
 - S2S güvenlik: aynı JWT ayarlarıyla servisler arası minimal “brief” çağrıları
 
-Detay için: **docs/architecture.md**
+Detay için: **[/operations.md](/operations.md)**
 
 
