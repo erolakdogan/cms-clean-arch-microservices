@@ -87,9 +87,9 @@ LOKI_PORT=3100
 
 ## 4) İlk Çalıştırma (Build + Up)
 
-```bash
 # Windows PowerShell veya Bash
-docker compose -f docker/docker-compose.yml --env-file .env up --build -d
+```bash
+docker compose -f docker-compose.yml --env-file .env up --build -d
 ```
 
 > İlk kez çalıştırmada imajların çekilmesi / restore ve publish süre alabilir.
