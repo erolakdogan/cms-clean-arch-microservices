@@ -50,6 +50,8 @@ docker compose -f docker/docker-compose.yml --env-file .env up --build -d
 ```bash
 dotnet test
 ```
+> Postman Hazır Collection: **[docs/postman_collection.json](docs/postman_collection.json)**
+> Context Diyagram: **[docs/system-context-diagram.png](docs/system-context-diagram.png)**
 
 ## Mimari
 - Clean Arch (Api / Application / Infrastructure / Domain)
