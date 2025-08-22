@@ -13,7 +13,7 @@ Bir içerik yönetim sistemi (CMS) ürünü base mimari yapı olarak kullanılab
 tasarlanmış case çalışmasıdır. 2 Ayri veritabani (**Postgres**), cashe yapisi için **Redis**, loglama ve monitör etmek için **Loki ve Grafana** ile birlikte geliştirilmiş, 
 **Docker Compose** üzerinden  tek bir komut ile run edilebilir. 
 
-> Operasyon kılavuzu: **[/operations.md](/operations.md)**
+> Operasyon kılavuzu: **[/operation.md](/operation.md)**
 
 > Postman Hazır Collection: **[/postman_collection.json](/postman_collection.json)**
 
@@ -53,6 +53,6 @@ dotnet test
 - CQRS (MediatR), Validasyon (FluentValidation),Mapping (Mapperly) Cross-cutting (Serilog, Middleware)
 - S2S güvenlik: aynı JWT ayarlarıyla servisler arası minimal “brief” çağrıları
 
-Detay için: **[/operations.md](/operations.md)**
+Detay için: **[/operation.md](/operation.md)**
 
 
