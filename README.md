@@ -15,7 +15,7 @@ tasarlanmış case çalışmasıdır. 2 Ayri veritabani (**Postgres**), cashe ya
 
 > Operasyon kılavuzu: **[docs/operations.md](docs/operations.md)**
 
-> Postman Hazır Collection: **[docs/postman_collection.json](docs/postman_collection.json)**
+> Postman Hazır Collection: **postman_collection.json](postman_collection.json)**
 
 > Context Diyagram: **[docs/system-context-diagram.png](docs/system-context-diagram.png)**
 
