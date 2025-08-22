@@ -17,7 +17,8 @@ public sealed class ListContentsHandler(
         var page = Math.Max(1, req.Page);
         var size = Math.Clamp(req.PageSize, 1, 100);
 
-        var q = repo.Query().AsNoTracking();
+        var q = repo.Query(); // repo tarafı NoTracking
+
         if (!string.IsNullOrWhiteSpace(req.Search))
         {
             var s = req.Search.Trim();
@@ -30,23 +31,16 @@ public sealed class ListContentsHandler(
                           .Take(size)
                           .ToListAsync(ct);
 
-        var items = mapper.ToDtoList(list);     
+        var items = mapper.ToDtoList(list);
+
+        // yazar bilgisi enrichment
         var updatedItems = new List<ContentDto>(items.Count);
         foreach (var dto in items)
         {
             var brief = await users.GetBriefAsync(dto.AuthorId, ct);
-            if (brief is not null)
-            {
-                updatedItems.Add(dto with
-                {
-                    AuthorDisplayName = brief.DisplayName,
-                    AuthorEmail = brief.Email
-                });
-            }
-            else
-            {
-                updatedItems.Add(dto);
-            }
+            updatedItems.Add(brief is null
+                ? dto
+                : dto with { AuthorDisplayName = brief.DisplayName, AuthorEmail = brief.Email });
         }
 
         return new PagedResult<ContentDto>(updatedItems, page, size, total);

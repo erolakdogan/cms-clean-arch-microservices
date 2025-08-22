@@ -99,10 +99,18 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // ---------------- DbContext ----------------
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDb");
 builder.Services.AddDbContext<UserDbContext>(opt =>
 {
-    var cs = builder.Configuration.GetConnectionString("Db");
-    opt.UseNpgsql(cs).UseSnakeCaseNamingConvention();
+    if (useInMemory || builder.Environment.IsEnvironment("Testing"))
+    {
+        opt.UseInMemoryDatabase("users-tests");
+    }
+    else
+    {
+        var cs = builder.Configuration.GetConnectionString("Db");
+        opt.UseNpgsql(cs).UseSnakeCaseNamingConvention();
+    }
 #if DEBUG
     opt.EnableSensitiveDataLogging();
 #endif
@@ -182,3 +190,6 @@ app.MapGet("/ready", () => Results.Ok(new { status = "ready" }));
 app.MapGet("/ping", () => Results.Ok("pong"));
 
 app.Run();
+
+// WebApplicationFactory<T> için gerekli (top-level statements ile partial Program tanımı)
+public partial class Program { }

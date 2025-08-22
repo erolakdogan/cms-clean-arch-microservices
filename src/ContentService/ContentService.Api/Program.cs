@@ -102,14 +102,23 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // ---------- DbContext ----------
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDb");
 builder.Services.AddDbContext<ContentDbContext>(opt =>
 {
-    var cs = builder.Configuration.GetConnectionString("Db");
-    opt.UseNpgsql(cs).UseSnakeCaseNamingConvention();
+    if (useInMemory || builder.Environment.IsEnvironment("Testing"))
+    {
+        opt.UseInMemoryDatabase("contents-tests");
+    }
+    else
+    {
+        var cs = builder.Configuration.GetConnectionString("Db");
+        opt.UseNpgsql(cs).UseSnakeCaseNamingConvention();
+    }
 #if DEBUG
     opt.EnableSensitiveDataLogging();
 #endif
 });
+
 
 // ---------- DI (Repos/UoW/Mapper) ----------
 builder.Services.AddScoped<IContentRepository, ContentRepository>();
@@ -223,3 +232,6 @@ static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
         .OrResult(r => (int)r.StatusCode is >= 500 or 408)
         .CircuitBreakerAsync(5, TimeSpan.FromSeconds(20));
 }
+
+// WebApplicationFactory<T> için gerekli (top-level statements ile partial Program tanımı)
+public partial class Program { }

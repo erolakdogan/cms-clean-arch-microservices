@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using Microsoft.EntityFrameworkCore;
 using UserService.Application.Common.Abstractions;
 
 namespace UserService.Application.Users.Commands;
@@ -12,7 +11,7 @@ public sealed class UpdateUserHandler(
 {
     public async Task Handle(UpdateUserCommand req, CancellationToken ct)
     {
-        var user = await repo.Query().FirstOrDefaultAsync(u => u.Id == req.Id, ct);
+        var user = await repo.GetByIdAsync(req.Id, ct); // Query() yerine
         if (user is null)
             throw new KeyNotFoundException($"User '{req.Id}' not found.");
 

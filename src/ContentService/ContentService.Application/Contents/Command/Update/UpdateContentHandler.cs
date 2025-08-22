@@ -9,7 +9,7 @@ public sealed class UpdateContentHandler(IContentRepository repo, IUnitOfWork uo
 {
     public async Task Handle(UpdateContentCommand req, CancellationToken ct)
     {
-        var entity = await repo.Query().FirstOrDefaultAsync(c => c.Id == req.Id, ct);
+        var entity = await repo.GetByIdAsync(req.Id, ct); // Query() yerine
         if (entity is null)
             throw new KeyNotFoundException($"Content '{req.Id}' not found.");
 
