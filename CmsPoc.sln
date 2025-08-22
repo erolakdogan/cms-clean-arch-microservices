@@ -72,7 +72,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "datasources", "datasources"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{48E9CB22-3887-40B8-807E-8FC8DB76DE2A}"
 	ProjectSection(SolutionItems) = preProject
-		architecture.md = architecture.md
+		operation.md = operation.md
 		postman_collection.json = postman_collection.json
 		..\..\..\Downloads\system-context-diagram.png = ..\..\..\Downloads\system-context-diagram.png
 	EndProjectSection
