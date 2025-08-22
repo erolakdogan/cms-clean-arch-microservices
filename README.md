@@ -17,8 +17,6 @@ tasarlanmış case çalışmasıdır. 2 Ayri veritabani (**Postgres**), cashe ya
 
 > Postman Hazır Collection: **[/postman_collection.json](/postman_collection.json)**
 
-> Context Diyagram: **[/system-context-diagram.png](system-context-diagram.png)**
-
 ## Teknolojiler
 - **.NET 8**, .Net, MediatR, FluentValidation,Mapperly
 - **EF Core** (PostgreSQL), InMemory (test)
@@ -50,9 +48,6 @@ docker compose -f docker/docker-compose.yml --env-file .env up --build -d
 ```bash
 dotnet test
 ```
-> Postman Hazır Collection: **[docs/postman_collection.json](docs/postman_collection.json)**
-> Context Diyagram: **[docs/system-context-diagram.png](docs/system-context-diagram.png)**
-
 ## Mimari
 - Clean Arch (Api / Application / Infrastructure / Domain)
 - CQRS (MediatR), Validasyon (FluentValidation),Mapping (Mapperly) Cross-cutting (Serilog, Middleware)
