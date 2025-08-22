@@ -13,11 +13,11 @@ Bir içerik yönetim sistemi (CMS) ürünü base mimari yapı olarak kullanılab
 tasarlanmış case çalışmasıdır. 2 Ayri veritabani (**Postgres**), cashe yapisi için **Redis**, loglama ve monitör etmek için **Loki ve Grafana** ile birlikte geliştirilmiş, 
 **Docker Compose** üzerinden  tek bir komut ile run edilebilir. 
 
-> Operasyon kılavuzu: **[/operations.md](docs/operations.md)**
+> Operasyon kılavuzu: **[/operations.md](/operations.md)**
 
-> Postman Hazır Collection: **/postman_collection.json](docs/postman_collection.json)**
+> Postman Hazır Collection: **[/postman_collection.json](/postman_collection.json)**
 
-> Context Diyagram: **[docs/system-context-diagram.png](docs/system-context-diagram.png)**
+> Context Diyagram: **[/system-context-diagram.png](system-context-diagram.png)**
 
 ## Teknolojiler
 - **.NET 8**, .Net, MediatR, FluentValidation,Mapperly
